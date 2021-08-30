@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   traefik:
-    image: traefik:v2.2.1
+    image: traefik:v2.5.1
     container_name: traefik
     restart: unless-stopped
     security_opt:
@@ -16,16 +16,25 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik.yml:/traefik.yml:ro
-      #- ./data/acme.json:/acme.json
-      - /var/:/var/acme.json #created with touch and then mapped and changed mod with 600
+      #-./data/acme.json:/acme.json
+      #- /opt/traefik/acme.json:/acme.json:rw
+      - ./data:/data
+      - ./shared:/shared
+      #- /var/:/var/acme.json #created with touch and then mapped and changed mod with 600
       - ./config.yml:/config.yml:ro
     labels:
       traefik.enable: true
-      traefik.http.routers.traefik.entrypoints: https
-      traefik.http.routers.traefik.rule: Host(`traefik.test.govinddiwakar.tech`)
-      traefik.http.middlewares.traefik-auth.basicauth.users: admin:password
-      traefik.http.routers.traefik.middlewares: traefik-auth
+      traefik.http.routers.traefik.entrypoints: websecure
+      traefik.http.routers.traefik.rule: Host(`traefik-test.govinddiwakar.tech`)
+      traefik.http.middlewares.simpleAuth.basicauth.users: admin:$$apr1$$XAF/J2w1$$.v9jlG.hjnpNy/VJ.Cq0L1
+      traefik.http.routers.traefik.middlewares: simpleAuth
       traefik.http.routers.traefik.service: api@internal
+      traefik.http.middlewares.testheader.headers.accesscontrolallowmethods: GET,OPTIONS,PUT,POST
+      traefik.http.middlewares.testheader.headers.accesscontrolalloworiginlist: https://test.govinddiwakar.tech
+      traefik.http.middlewares.testheader.headers.accesscontrolmaxage: 100
+      traefik.http.middlewares.testheader.headers.addvaryheader: true
+      traefik.http.routers.traefik.middlewares: testheader
+     # traefic.http.routers.api.tls.certResolver: lets-encrypt
     tty: true
     environment: 
       - DO_AUTH_TOKEN=9d8780610a991ac9bc71083f7f5087c0e86a7b31b4c0747541f5a34be2c2a72a
@@ -33,3 +42,7 @@ services:
 networks:
   web:
     external: true
+  internal:   
+    external: false
+  saleor-backend-tier:
+    external: false
